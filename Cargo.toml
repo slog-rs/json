@@ -1,0 +1,21 @@
+[package]
+name = "slog-json"
+version = "1.2.1"
+authors = ["Dawid Ciężarkiewicz <dpc@dpc.pw>"]
+description = "Json formatter for slog-rs"
+keywords = ["slog", "logging", "json"]
+license = "MPL-2.0"
+documentation = "https://docs.rs/slog-json"
+homepage = "https://github.com/slog-rs/slog"
+repository = "https://github.com/slog-rs/json"
+readme = "README.md"
+
+[lib]
+path = "lib.rs"
+
+[dependencies]
+slog = "1.2"
+slog-serde = { version = "1.0.0-alpha9"}
+slog-stream = "1.2"
+serde_json = "0.8.2"
+chrono = "0.2"
