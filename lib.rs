@@ -214,7 +214,7 @@ impl<W> JsonBuilder<W>
         }
     }
 
-    /// Set writing a newline after ever log record
+    /// Set writing a newline after every log record
     pub fn set_newlines(mut self, enabled: bool) -> Self {
         self.newlines = enabled;
         self
