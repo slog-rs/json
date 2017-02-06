@@ -20,7 +20,6 @@
 //! ```
 #![warn(missing_docs)]
 
-#[macro_use]
 extern crate slog;
 extern crate slog_serde;
 extern crate slog_stream;
@@ -31,9 +30,9 @@ use std::io;
 
 use slog_serde::SerdeSerializer;
 use slog::Record;
-use slog::{Level, OwnedKeyValueList};
+use slog::{Level, OwnedKVList, KV, SingleKV};
 use slog::Level::*;
-use slog::ser::{PushLazy, ValueSerializer, SyncMultiSerialize};
+use slog::{FnValue, PushFnValue};
 
 fn level_to_string(level: Level) -> &'static str {
     match level {
@@ -51,7 +50,7 @@ fn level_to_string(level: Level) -> &'static str {
 /// Each record will be printed as a Json map.
 pub struct Format {
     newlines: bool,
-    values: OwnedKeyValueList,
+    values: Vec<Box<KV+'static+Send+Sync>>,
 }
 
 impl Format {
@@ -66,14 +65,14 @@ impl Format {
 /// Create with `Format::build`.
 pub struct FormatBuilder {
     newlines: bool,
-    values: OwnedKeyValueList,
+    values: Vec<Box<KV+'static+Send+Sync>>,
 }
 
 impl FormatBuilder {
     fn new() -> Self {
         FormatBuilder {
             newlines: true,
-            values: OwnedKeyValueList::root(None),
+            values: vec!(),
         }
     }
 
@@ -94,18 +93,16 @@ impl FormatBuilder {
     }
 
     /// Add custom values to be printed with this formatter
-    pub fn add_key_values(mut self, values: Option<Box<SyncMultiSerialize>>) -> Self {
-        if let Some(v) = values {
-            self.values = OwnedKeyValueList::new(v, self.values);
+    pub fn add_key_values(mut self, mut values: Vec<Box<KV+'static+Send+Sync>>) -> Self {
+        for kv in values.drain(..) {
+            self = self.add_key_value(kv);
         }
         self
     }
 
     /// Add custom values to be printed with this formatter
-    pub fn add_key_value(mut self, value: Option<Box<SyncMultiSerialize>>) -> Self {
-        if let Some(v) = value {
-            self.values = OwnedKeyValueList::new(v, self.values);
-        }
+    pub fn add_key_value(mut self, value: Box<KV+'static+Send+Sync>) -> Self {
+        self.values.push(value);
         self
     }
 
@@ -115,17 +112,19 @@ impl FormatBuilder {
     /// * `msg` - msg - formatted logging message
     pub fn add_default_keys(self) -> Self {
         self.add_key_values(
-            o!(
-                "ts" => PushLazy(move |_ : &Record, ser : ValueSerializer| {
+            vec![
+                Box::new(SingleKV("ts", PushFnValue(move |_ : &Record, ser| {
                     ser.serialize(chrono::Local::now().to_rfc3339())
-                }),
-                "level" => move |rinfo : &Record| {
+                }))),
+
+                Box::new(SingleKV("level", FnValue(move |rinfo : &Record| {
                     level_to_string(rinfo.level())
-                },
-                "msg" => PushLazy(move |record : &Record, ser : ValueSerializer| {
+                }))),
+                Box::new(SingleKV("msg", PushFnValue(move |record : &Record, ser| {
                     ser.serialize(record.msg())
-                })
-              )
+                })))
+
+            ],
             )
     }
 }
@@ -134,23 +133,23 @@ impl slog_stream::Format for Format {
     fn format(&self,
               io: &mut io::Write,
               rinfo: &Record,
-              logger_values: &OwnedKeyValueList)
+              logger_values: &OwnedKVList)
               -> io::Result<()> {
 
         let io = {
             let serializer = serde_json::Serializer::new(io);
             let mut serializer = try!(SerdeSerializer::start(serializer, None));
 
-            for (ref k, ref v) in self.values.iter() {
-                try!(v.serialize(rinfo, k, &mut serializer));
+            for kv in self.values.iter() {
+                try!(kv.serialize(rinfo, &mut serializer));
             }
 
-            for (ref k, ref v) in logger_values.iter() {
-                try!(v.serialize(rinfo, k, &mut serializer));
+            for kv in logger_values.iter_groups() {
+                try!(kv.serialize(rinfo, &mut serializer));
             }
 
-            for &(ref k, ref v) in rinfo.values().iter() {
-                try!(v.serialize(rinfo, k, &mut serializer));
+            for kv in rinfo.values().iter() {
+                try!(kv.serialize(rinfo, &mut serializer));
             }
             let (serializer, res) = serializer.end();
 
