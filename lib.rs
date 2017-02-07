@@ -148,9 +148,8 @@ impl slog_stream::Format for Format {
                 try!(kv.serialize(rinfo, &mut serializer));
             }
 
-            for kv in rinfo.kvs().iter() {
-                try!(kv.serialize(rinfo, &mut serializer));
-            }
+            try!(rinfo.kv().serialize(rinfo, &mut serializer));
+
             let (serializer, res) = serializer.end();
 
             let _ = try!(res);
