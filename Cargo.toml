@@ -11,11 +11,10 @@ repository = "https://github.com/slog-rs/json"
 readme = "README.md"
 
 [lib]
-path = "lib.rs"
+path = "src/lib.rs"
 
 [dependencies]
 slog = { git="http://github.com/slog-rs/slog", branch = "2.x.y" }
-slog-serde = { git="http://github.com/slog-rs/serde", branch = "2.x.y" }
-slog-stream = { git="http://github.com/slog-rs/stream", branch = "2.x.y" }
-serde_json = "0.8.2"
+serde_json = "0.9"
+serde = "0.9"
 chrono = "0.2"
