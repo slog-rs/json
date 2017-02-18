@@ -101,7 +101,8 @@ where W : io::Write {
     }
 
     /// Add custom values to be printed with this formatter
-    pub fn add_key_value(mut self, value: slog::OwnedKV) -> Self {
+    pub fn add_key_value<T>(mut self, value: slog::OwnedKV<T>) -> Self
+    where T : KV + Send + Sync + 'static {
         self.values.push(value.into());
         self
     }
@@ -143,14 +144,10 @@ where W : io::Write {
                 let mut serializer = try!(SerdeSerializer::start(&mut serializer, None));
 
                 for kv in self.values.iter() {
-                    for kv in kv.iter_groups() {
-                        try!(kv.serialize(rinfo, &mut serializer));
-                    }
-                }
-
-                for kv in logger_values.iter_groups() {
                     try!(kv.serialize(rinfo, &mut serializer));
                 }
+
+                try!(logger_values.serialize(rinfo, &mut serializer));
 
                 try!(rinfo.kv().serialize(rinfo, &mut serializer));
 
