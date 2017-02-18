@@ -23,15 +23,15 @@ extern crate chrono;
 extern crate serde;
 extern crate serde_json;
 
+use serde::ser::SerializeMap;
+use slog::{FnValue, PushFnValue};
+use slog::{Level, OwnedKVList, KV};
+use slog::Level::*;
+use slog::Record;
 use std::{io, result, fmt};
 
 use std::cell::RefCell;
 use std::fmt::Write;
-use slog::Record;
-use slog::{Level, OwnedKVList, KV};
-use slog::Level::*;
-use slog::{FnValue, PushFnValue};
-use serde::ser::SerializeMap;
 
 fn level_to_string(level: Level) -> &'static str {
     match level {
@@ -50,16 +50,17 @@ include!("_ser.rs");
 ///
 /// Each record will be printed as a Json map
 /// to a given `io`
-pub struct Json<W : io::Write> {
+pub struct Json<W: io::Write> {
     newlines: bool,
     values: Vec<OwnedKVList>,
-    io : RefCell<W>,
+    io: RefCell<W>,
 }
 
 impl<W> Json<W>
-where W : io::Write {
+    where W: io::Write
+{
     /// Build a Json formatter
-    pub fn new(io : W) -> JsonBuilder<W> {
+    pub fn new(io: W) -> JsonBuilder<W> {
         JsonBuilder::new(io)
     }
 }
@@ -67,19 +68,20 @@ where W : io::Write {
 /// Json formatter builder
 ///
 /// Create with `Json::build`.
-pub struct JsonBuilder<W : io::Write> {
+pub struct JsonBuilder<W: io::Write> {
     newlines: bool,
     values: Vec<OwnedKVList>,
-    io : W,
+    io: W,
 }
 
 impl<W> JsonBuilder<W>
-where W : io::Write {
-    fn new(io : W) -> Self {
+    where W: io::Write
+{
+    fn new(io: W) -> Self {
         JsonBuilder {
             newlines: true,
-            values: vec!(),
-            io : io,
+            values: vec![],
+            io: io,
         }
     }
 
@@ -102,7 +104,8 @@ where W : io::Write {
 
     /// Add custom values to be printed with this formatter
     pub fn add_key_value<T>(mut self, value: slog::OwnedKV<T>) -> Self
-    where T : KV + Send + Sync + 'static {
+        where T: KV + Send + Sync + 'static
+    {
         self.values.push(value.into());
         self
     }
@@ -112,8 +115,7 @@ where W : io::Write {
     /// * `level` - record logging level name
     /// * `msg` - msg - formatted logging message
     pub fn add_default_keys(self) -> Self {
-        self.add_key_value(
-            o!(
+        self.add_key_value(o!(
                 "ts" => PushFnValue(move |_ : &Record, ser| {
                     ser.serialize(chrono::Local::now().to_rfc3339())
                 }),
@@ -123,25 +125,26 @@ where W : io::Write {
                 "msg" => PushFnValue(move |record : &Record, ser| {
                     ser.serialize(record.msg())
                 }),
-                )
-            )
+                ))
     }
 }
 
 impl<W> slog::Drain for Json<W>
-where W : io::Write {
+    where W: io::Write
+{
     type Ok = ();
     type Err = io::Error;
     fn log(&self,
-              rinfo: &Record,
-              logger_values: &OwnedKVList)
-              -> io::Result<()> {
+           rinfo: &Record,
+           logger_values: &OwnedKVList)
+           -> io::Result<()> {
 
         let mut io = self.io.borrow_mut();
         let mut io = {
             let mut serializer = serde_json::Serializer::new(&mut *io);
             {
-                let mut serializer = try!(SerdeSerializer::start(&mut serializer, None));
+                let mut serializer =
+                    try!(SerdeSerializer::start(&mut serializer, None));
 
                 for kv in self.values.iter() {
                     try!(kv.serialize(rinfo, &mut serializer));
@@ -165,11 +168,11 @@ where W : io::Write {
 }
 
 /// Create new `JsonBuilder` to create `Json`
-pub fn custom<W : io::Write>(io : W) -> JsonBuilder<W> {
+pub fn custom<W: io::Write>(io: W) -> JsonBuilder<W> {
     Json::new(io)
 }
 
 /// Default json `Json`
-pub fn default<W : io::Write>(io : W) -> Json<W> {
+pub fn default<W: io::Write>(io: W) -> Json<W> {
     Json::new(io).add_default_keys().build()
 }
