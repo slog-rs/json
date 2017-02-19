@@ -62,7 +62,7 @@ publishdoc:
 
 .PHONY: docview
 docview: doc
-	xdg-open target/doc/$(PKG_NAME)/index.html
+	xdg-open target/doc/`echo $(PKG_NAME) | tr '-' '_'`/index.html
 
 .PHONY: FORCE
 FORCE:
