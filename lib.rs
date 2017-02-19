@@ -64,8 +64,7 @@ impl<S: serde::Serializer> SerdeSerializer<S> {
 
     /// Finish serialization, and return the serializer
     fn end(self) -> std::result::Result<S::Ok, S::Error> {
-        let res = self.ser_map.end();
-        res
+        self.ser_map.end()
     }
 }
 
@@ -175,6 +174,7 @@ impl<W> Json<W>
     }
 
     /// Build custom `Json` `Drain`
+    #[cfg_attr(feature = "cargo-clippy", allow(new_ret_no_self))]
     pub fn new(io: W) -> JsonBuilder<W> {
         JsonBuilder::new(io)
     }
@@ -265,7 +265,7 @@ impl<W> slog::Drain for Json<W>
                 let mut serializer =
                     try!(SerdeSerializer::start(&mut serializer, None));
 
-                for kv in self.values.iter() {
+                for kv in &self.values {
                     try!(kv.serialize(rinfo, &mut serializer));
                 }
 
@@ -275,12 +275,12 @@ impl<W> slog::Drain for Json<W>
 
                 let res = serializer.end();
 
-                let _ = try!(res.map_err(|e| io::Error::new(io::ErrorKind::Other, e)));
+                try!(res.map_err(|e| io::Error::new(io::ErrorKind::Other, e)));
             }
             serializer.into_inner()
         };
         if self.newlines {
-            let _ = try!(io.write_all("\n".as_bytes()));
+            try!(io.write_all("\n".as_bytes()));
         }
         Ok(())
     }
