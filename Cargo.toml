@@ -1,6 +1,6 @@
 [package]
 name = "slog-json"
-version = "2.0.0-alpha1"
+version = "2.0.0-alpha2"
 authors = ["Dawid Ciężarkiewicz <dpc@dpc.pw>"]
 description = "JSON drain for slog-rs"
 keywords = ["slog", "logging", "json"]
@@ -14,7 +14,7 @@ readme = "README.md"
 path = "lib.rs"
 
 [dependencies]
-slog = "2.0.0-alpha1"
+slog = "2.0.0-alpha2"
 serde_json = "0.9"
 serde = "0.9"
 chrono = "0.3"
