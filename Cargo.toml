@@ -14,7 +14,7 @@ readme = "README.md"
 path = "lib.rs"
 
 [dependencies]
-slog = "2.0.0-1.0"
+slog = ">= 2.0.0-1.0, < 2.0.0-2"
 serde_json = "0.9"
 serde = "0.9"
 chrono = "0.3"
