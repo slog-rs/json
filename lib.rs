@@ -28,7 +28,7 @@ extern crate serde_json;
 
 use serde::ser::SerializeMap;
 use slog::{FnValue, PushFnValue};
-use slog::{OwnedKVList, KV, ThreadSafeKV};
+use slog::{OwnedKVList, KV, SendSyncRefUnwindSafeKV};
 use slog::Record;
 use std::{io, result, fmt};
 
@@ -222,7 +222,7 @@ impl<W> JsonBuilder<W>
 
     /// Add custom values to be printed with this formatter
     pub fn add_key_value<T>(mut self, value: slog::OwnedKV<T>) -> Self
-        where T: ThreadSafeKV + 'static
+        where T: SendSyncRefUnwindSafeKV + 'static
     {
         self.values.push(value.into());
         self
