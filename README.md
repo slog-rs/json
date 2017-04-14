@@ -22,4 +22,10 @@
 
 For more information, help, to report issues etc. see [slog-rs][slog-rs].
 
+ ## Note
+ 
+ slog_json parses the logged Record values only, consider using [slog-bunyan][bunyan] instead for a more complete output format.
+
 [slog-rs]: //github.com/slog-rs/slog
+[bunyan]: //github.com/slog-rs/bunyan
+ 
