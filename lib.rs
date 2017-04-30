@@ -236,13 +236,13 @@ impl<W> JsonBuilder<W>
     pub fn add_default_keys(self) -> Self {
         self.add_key_value(o!(
                 "ts" => PushFnValue(move |_ : &Record, ser| {
-                    ser.serialize(chrono::Local::now().to_rfc3339())
+                    ser.emit(chrono::Local::now().to_rfc3339())
                 }),
                 "level" => FnValue(move |rinfo : &Record| {
                     rinfo.level().as_short_str()
                 }),
                 "msg" => PushFnValue(move |record : &Record, ser| {
-                    ser.serialize(record.msg())
+                    ser.emit(record.msg())
                 }),
                 ))
     }
