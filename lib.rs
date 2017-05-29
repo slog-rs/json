@@ -185,7 +185,7 @@ impl<W> Json<W>
 // {{{ JsonBuilder
 /// Json `Drain` builder
 ///
-/// Create with `Json::build`.
+/// Create with `Json::new`.
 pub struct JsonBuilder<W: io::Write> {
     newlines: bool,
     values: Vec<OwnedKVList>,
