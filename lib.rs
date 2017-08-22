@@ -259,7 +259,7 @@ impl<W> slog::Drain for Json<W>
            -> io::Result<()> {
 
         let mut io = self.io.borrow_mut();
-        let mut io = {
+        let io = {
             let mut serializer = serde_json::Serializer::new(&mut *io);
             {
                 let mut serializer =
