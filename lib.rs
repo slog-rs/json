@@ -47,7 +47,7 @@ thread_local! {
 /// Newtype to wrap serde Serializer, so that `Serialize` can be implemented
 /// for it
 struct SerdeSerializer<S: serde::Serializer> {
-    /// Current state of map serializing: `serde::Seriaizer::MapState`
+    /// Current state of map serializing: `serde::Serializer::MapState`
     ser_map: S::SerializeMap,
 }
 
@@ -63,7 +63,7 @@ impl<S: serde::Serializer> SerdeSerializer<S> {
     }
 
     /// Finish serialization, and return the serializer
-    fn end(self) -> std::result::Result<S::Ok, S::Error> {
+    fn end(self) -> result::Result<S::Ok, S::Error> {
         self.ser_map.end()
     }
 }
@@ -150,6 +150,11 @@ impl<S> slog::Serializer for SerdeSerializer<S>
             buf.clear();
             res
         })
+    }
+
+    #[cfg(feature = "eserde")]
+    fn emit_serde(&mut self, key: &str, value: &slog::SerdeValue) -> slog::Result {
+        impl_m!(self, key, value.as_serde())
     }
 }
 // }}}
