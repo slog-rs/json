@@ -14,8 +14,9 @@ readme = "README.md"
 path = "lib.rs"
 
 [features]
-eserde = ["erased-serde"]
-default = ["eserde"]
+# Can't use "serde" as a fature name because we already depend on serde below.
+nested-values = ["erased-serde"]
+default = ["nested-values"]
 
 [dependencies]
 # slog = "2"
