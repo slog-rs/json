@@ -19,7 +19,7 @@ default = ["eserde"]
 
 [dependencies]
 # slog = "2"
-slog = { git = "https://github.com/Metaswitch/slog", branch = "serde", features = ["serde"]}
+slog = { git = "https://github.com/slog-rs/slog", branch = "serde", features = ["serde"]}
 serde_json = "1"
 serde = "1"
 chrono = "0.4"
