@@ -152,7 +152,7 @@ impl<S> slog::Serializer for SerdeSerializer<S>
         })
     }
 
-    #[cfg(feature = "eserde")]
+    #[cfg(feature = "nested-values")]
     fn emit_serde(&mut self, key: &str, value: &slog::SerdeValue) -> slog::Result {
         impl_m!(self, key, value.as_serde())
     }
