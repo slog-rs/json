@@ -163,6 +163,7 @@ pub struct Json<W: io::Write> {
     newlines: bool,
     values: Vec<OwnedKVList>,
     io: RefCell<W>,
+    pretty: bool,
 }
 
 impl<W> Json<W>
@@ -190,6 +191,7 @@ pub struct JsonBuilder<W: io::Write> {
     newlines: bool,
     values: Vec<OwnedKVList>,
     io: W,
+    pretty: bool,
 }
 
 impl<W> JsonBuilder<W>
@@ -200,6 +202,7 @@ impl<W> JsonBuilder<W>
             newlines: true,
             values: vec![],
             io: io,
+            pretty: false,
         }
     }
 
@@ -211,12 +214,19 @@ impl<W> JsonBuilder<W>
             values: self.values,
             newlines: self.newlines,
             io: RefCell::new(self.io),
+            pretty: self.pretty,
         }
     }
 
     /// Set writing a newline after every log record
     pub fn set_newlines(mut self, enabled: bool) -> Self {
         self.newlines = enabled;
+        self
+    }
+
+    /// Set whether or not pretty formatted logging should be used
+    pub fn set_pretty(mut self, enabled: bool) -> Self {
+        self.pretty = enabled;
         self
     }
 
