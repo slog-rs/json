@@ -163,6 +163,7 @@ pub struct Json<W: io::Write> {
     newlines: bool,
     values: Vec<OwnedKVList>,
     io: RefCell<W>,
+    pretty: bool,
 }
 
 impl<W> Json<W>
@@ -178,6 +179,60 @@ impl<W> Json<W>
     pub fn new(io: W) -> JsonBuilder<W> {
         JsonBuilder::new(io)
     }
+
+    fn log_impl<F>(
+        &self,
+        serializer: &mut serde_json::ser::Serializer<&mut W, F>,
+        rinfo: &Record,
+        logger_values: &OwnedKVList,
+    ) -> io::Result<()>
+    where
+        F: serde_json::ser::Formatter,
+    {
+        let mut serializer =
+            try!(SerdeSerializer::start(&mut *serializer, None));
+
+        for kv in &self.values {
+            try!(kv.serialize(rinfo, &mut serializer));
+        }
+
+        try!(logger_values.serialize(rinfo, &mut serializer));
+
+        try!(rinfo.kv().serialize(rinfo, &mut serializer));
+
+        let res = serializer.end();
+
+        try!(res.map_err(|e| io::Error::new(io::ErrorKind::Other, e)));
+
+        Ok(())
+    }
+}
+
+impl<W> slog::Drain for Json<W>
+    where W: io::Write
+{
+    type Ok = ();
+    type Err = io::Error;
+    fn log(&self,
+           rinfo: &Record,
+           logger_values: &OwnedKVList)
+           -> io::Result<()> {
+
+        let mut io = self.io.borrow_mut();
+        let io = if self.pretty {
+            let mut serializer = serde_json::Serializer::pretty(&mut *io);
+            try!(self.log_impl(&mut serializer, &rinfo, &logger_values));
+            serializer.into_inner()
+        } else {
+            let mut serializer = serde_json::Serializer::new(&mut *io);
+            try!(self.log_impl(&mut serializer, &rinfo, &logger_values));
+            serializer.into_inner()
+        };
+        if self.newlines {
+            try!(io.write_all("\n".as_bytes()));
+        }
+        Ok(())
+    }
 }
 
 // }}}
@@ -190,6 +245,7 @@ pub struct JsonBuilder<W: io::Write> {
     newlines: bool,
     values: Vec<OwnedKVList>,
     io: W,
+    pretty: bool,
 }
 
 impl<W> JsonBuilder<W>
@@ -200,6 +256,7 @@ impl<W> JsonBuilder<W>
             newlines: true,
             values: vec![],
             io: io,
+            pretty: false,
         }
     }
 
@@ -211,12 +268,19 @@ impl<W> JsonBuilder<W>
             values: self.values,
             newlines: self.newlines,
             io: RefCell::new(self.io),
+            pretty: self.pretty,
         }
     }
 
     /// Set writing a newline after every log record
     pub fn set_newlines(mut self, enabled: bool) -> Self {
         self.newlines = enabled;
+        self
+    }
+
+    /// Set whether or not pretty formatted logging should be used
+    pub fn set_pretty(mut self, enabled: bool) -> Self {
+        self.pretty = enabled;
         self
     }
 
@@ -245,44 +309,6 @@ impl<W> JsonBuilder<W>
                     ser.emit(record.msg())
                 }),
                 ))
-    }
-}
-
-impl<W> slog::Drain for Json<W>
-    where W: io::Write
-{
-    type Ok = ();
-    type Err = io::Error;
-    fn log(&self,
-           rinfo: &Record,
-           logger_values: &OwnedKVList)
-           -> io::Result<()> {
-
-        let mut io = self.io.borrow_mut();
-        let io = {
-            let mut serializer = serde_json::Serializer::new(&mut *io);
-            {
-                let mut serializer =
-                    try!(SerdeSerializer::start(&mut serializer, None));
-
-                for kv in &self.values {
-                    try!(kv.serialize(rinfo, &mut serializer));
-                }
-
-                try!(logger_values.serialize(rinfo, &mut serializer));
-
-                try!(rinfo.kv().serialize(rinfo, &mut serializer));
-
-                let res = serializer.end();
-
-                try!(res.map_err(|e| io::Error::new(io::ErrorKind::Other, e)));
-            }
-            serializer.into_inner()
-        };
-        if self.newlines {
-            try!(io.write_all("\n".as_bytes()));
-        }
-        Ok(())
     }
 }
 // }}}
