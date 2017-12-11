@@ -16,4 +16,5 @@ fn main() {
     let log = slog::Logger::root(drain, o!("format" => "pretty"));
 
     info!(log, "An example log message"; "foo" => "bar");
+    info!(log, "Another example log message"; "fizz" => "buzz");
 }
