@@ -31,6 +31,7 @@ use slog::{FnValue, PushFnValue};
 use slog::{OwnedKVList, KV, SendSyncRefUnwindSafeKV};
 use slog::Record;
 use std::{io, result, fmt};
+use slog::Key;
 
 use std::cell::RefCell;
 use std::fmt::Write;
@@ -70,7 +71,8 @@ impl<S: serde::Serializer> SerdeSerializer<S> {
 
 macro_rules! impl_m(
     ($s:expr, $key:expr, $val:expr) => ({
-        try!($s.ser_map.serialize_entry($key, $val)
+        let k_s:  &str = $key.as_ref();
+        try!($s.ser_map.serialize_entry(k_s, $val)
              .map_err(|_| io::Error::new(io::ErrorKind::Other, "serde serialization error")));
         Ok(())
     });
@@ -79,63 +81,63 @@ macro_rules! impl_m(
 impl<S> slog::Serializer for SerdeSerializer<S>
     where S: serde::Serializer
 {
-    fn emit_bool(&mut self, key: &str, val: bool) -> slog::Result {
+    fn emit_bool(&mut self, key: Key, val: bool) -> slog::Result {
         impl_m!(self, key, &val)
     }
 
-    fn emit_unit(&mut self, key: &str) -> slog::Result {
+    fn emit_unit(&mut self, key: Key) -> slog::Result {
         impl_m!(self, key, &())
     }
 
-    fn emit_char(&mut self, key: &str, val: char) -> slog::Result {
+    fn emit_char(&mut self, key: Key, val: char) -> slog::Result {
         impl_m!(self, key, &val)
     }
 
-    fn emit_none(&mut self, key: &str) -> slog::Result {
+    fn emit_none(&mut self, key: Key) -> slog::Result {
         let val: Option<()> = None;
         impl_m!(self, key, &val)
     }
-    fn emit_u8(&mut self, key: &str, val: u8) -> slog::Result {
+    fn emit_u8(&mut self, key: Key, val: u8) -> slog::Result {
         impl_m!(self, key, &val)
     }
-    fn emit_i8(&mut self, key: &str, val: i8) -> slog::Result {
+    fn emit_i8(&mut self, key: Key, val: i8) -> slog::Result {
         impl_m!(self, key, &val)
     }
-    fn emit_u16(&mut self, key: &str, val: u16) -> slog::Result {
+    fn emit_u16(&mut self, key: Key, val: u16) -> slog::Result {
         impl_m!(self, key, &val)
     }
-    fn emit_i16(&mut self, key: &str, val: i16) -> slog::Result {
+    fn emit_i16(&mut self, key: Key, val: i16) -> slog::Result {
         impl_m!(self, key, &val)
     }
-    fn emit_usize(&mut self, key: &str, val: usize) -> slog::Result {
+    fn emit_usize(&mut self, key: Key, val: usize) -> slog::Result {
         impl_m!(self, key, &val)
     }
-    fn emit_isize(&mut self, key: &str, val: isize) -> slog::Result {
+    fn emit_isize(&mut self, key: Key, val: isize) -> slog::Result {
         impl_m!(self, key, &val)
     }
-    fn emit_u32(&mut self, key: &str, val: u32) -> slog::Result {
+    fn emit_u32(&mut self, key: Key, val: u32) -> slog::Result {
         impl_m!(self, key, &val)
     }
-    fn emit_i32(&mut self, key: &str, val: i32) -> slog::Result {
+    fn emit_i32(&mut self, key: Key, val: i32) -> slog::Result {
         impl_m!(self, key, &val)
     }
-    fn emit_f32(&mut self, key: &str, val: f32) -> slog::Result {
+    fn emit_f32(&mut self, key: Key, val: f32) -> slog::Result {
         impl_m!(self, key, &val)
     }
-    fn emit_u64(&mut self, key: &str, val: u64) -> slog::Result {
+    fn emit_u64(&mut self, key: Key, val: u64) -> slog::Result {
         impl_m!(self, key, &val)
     }
-    fn emit_i64(&mut self, key: &str, val: i64) -> slog::Result {
+    fn emit_i64(&mut self, key: Key, val: i64) -> slog::Result {
         impl_m!(self, key, &val)
     }
-    fn emit_f64(&mut self, key: &str, val: f64) -> slog::Result {
+    fn emit_f64(&mut self, key: Key, val: f64) -> slog::Result {
         impl_m!(self, key, &val)
     }
-    fn emit_str(&mut self, key: &str, val: &str) -> slog::Result {
+    fn emit_str(&mut self, key: Key, val: &str) -> slog::Result {
         impl_m!(self, key, &val)
     }
     fn emit_arguments(&mut self,
-                      key: &str,
+                      key: Key,
                       val: &fmt::Arguments)
                       -> slog::Result {
 
@@ -153,7 +155,7 @@ impl<S> slog::Serializer for SerdeSerializer<S>
     }
 
     #[cfg(feature = "nested-values")]
-    fn emit_serde(&mut self, key: &str, value: &slog::SerdeValue) -> slog::Result {
+    fn emit_serde(&mut self, key: Key, value: &slog::SerdeValue) -> slog::Result {
         impl_m!(self, key, value.as_serde())
     }
 }
