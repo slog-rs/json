@@ -14,17 +14,21 @@ readme = "README.md"
 path = "lib.rs"
 
 [features]
-# Can't use "serde" as a fature name because we already depend on serde below.
-nested-values = ["erased-serde"]
-default = ["nested-values"]
+nested-values = ["erased-serde", "slog/nested-values"]
+default = []
 
 [dependencies]
-# slog = "2"
-slog = { git = "https://github.com/slog-rs/slog", branch = "master", features = ["serde"]}
+slog = { version = "2.0.12" }
 serde_json = "1"
 serde = "1"
 chrono = "0.4"
+erased-serde = {version = "0.3", optional = true }
 
 [dev-dependencies]
 slog-async = "2"
-erased-serde = {version = "0.3", optional = true }
+
+[patch.crates-io]
+slog = { path = "../slog-rs" }
+
+[package.metadata.docs.rs]
+features = ["std", "nested-values"]
