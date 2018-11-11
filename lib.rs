@@ -56,9 +56,9 @@ impl<S: serde::Serializer> SerdeSerializer<S> {
     /// Start serializing map of values
     fn start(ser: S, len: Option<usize>) -> result::Result<Self, slog::Error> {
         let ser_map = try!(ser.serialize_map(len)
-            .map_err(|_| {
+            .map_err(|e| {
                 io::Error::new(io::ErrorKind::Other,
-                               "serde serialization error")
+                               format!("serde serialization error: {}", e))
             }));
         Ok(SerdeSerializer { ser_map: ser_map })
     }
@@ -73,7 +73,7 @@ macro_rules! impl_m(
     ($s:expr, $key:expr, $val:expr) => ({
         let k_s:  &str = $key.as_ref();
         try!($s.ser_map.serialize_entry(k_s, $val)
-             .map_err(|_| io::Error::new(io::ErrorKind::Other, "serde serialization error")));
+             .map_err(|e| io::Error::new(io::ErrorKind::Other, format!("serde serialization error: {}", e))));
         Ok(())
     });
 );
