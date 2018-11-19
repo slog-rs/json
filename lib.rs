@@ -168,6 +168,7 @@ impl<S> slog::Serializer for SerdeSerializer<S>
 /// to a given `io`
 pub struct Json<W: io::Write> {
     newlines: bool,
+    flush: bool,
     values: Vec<OwnedKVList>,
     io: RefCell<W>,
     pretty: bool,
@@ -238,6 +239,9 @@ impl<W> slog::Drain for Json<W>
         if self.newlines {
             try!(io.write_all("\n".as_bytes()));
         }
+        if self.flush {
+            io.flush()?;
+        }
         Ok(())
     }
 }
@@ -250,6 +254,7 @@ impl<W> slog::Drain for Json<W>
 /// Create with `Json::new`.
 pub struct JsonBuilder<W: io::Write> {
     newlines: bool,
+    flush: bool,
     values: Vec<OwnedKVList>,
     io: W,
     pretty: bool,
@@ -261,6 +266,7 @@ impl<W> JsonBuilder<W>
     fn new(io: W) -> Self {
         JsonBuilder {
             newlines: true,
+            flush: false,
             values: vec![],
             io: io,
             pretty: false,
@@ -274,6 +280,7 @@ impl<W> JsonBuilder<W>
         Json {
             values: self.values,
             newlines: self.newlines,
+            flush: self.flush,
             io: RefCell::new(self.io),
             pretty: self.pretty,
         }
@@ -282,6 +289,12 @@ impl<W> JsonBuilder<W>
     /// Set writing a newline after every log record
     pub fn set_newlines(mut self, enabled: bool) -> Self {
         self.newlines = enabled;
+        self
+    }
+
+    /// Enable flushing of the `io::Write` after every log record
+    pub fn set_flush(mut self, enabled: bool) -> Self {
+        self.flush = enabled;
         self
     }
 
