@@ -5,9 +5,15 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
+
+## 2.3.0 - 2018-12-04
 ### Added
 
 * Option `flush` to enable flushing of the `io::Write` after each record.
+
+### Changed
+
+* Improve error message for Serde serialization errors.
 
 ## 2.2.0 - 2017-12-10
 ### Added
