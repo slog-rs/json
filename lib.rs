@@ -319,16 +319,28 @@ impl<W> JsonBuilder<W>
     /// * `msg` - msg - formatted logging message
     pub fn add_default_keys(self) -> Self {
         self.add_key_value(o!(
-                "ts" => PushFnValue(move |_ : &Record, ser| {
-                    ser.emit(chrono::Local::now().to_rfc3339())
-                }),
-                "level" => FnValue(move |rinfo : &Record| {
-                    rinfo.level().as_short_str()
-                }),
-                "msg" => PushFnValue(move |record : &Record, ser| {
-                    ser.emit(record.msg())
-                }),
-                ))
+            "ts" => PushFnValue(move |_ : &Record, ser| {
+                ser.emit(chrono::Local::now().to_rfc3339())
+            }),
+            "level" => FnValue(move |rinfo : &Record| {
+                rinfo.level().as_short_str()
+            }),
+            "msg" => PushFnValue(move |record : &Record, ser| {
+                ser.emit(record.msg())
+            }),
+            "tag" => PushFnValue(move |record : &Record, ser| {
+                ser.emit(record.tag())
+            }),
+            "location.file" => PushFnValue(move |record : &Record, ser| {
+                ser.emit(record.file())
+            }),
+            "location.line" => PushFnValue(move |record : &Record, ser| {
+                ser.emit(record.line())
+            }),
+            "location.module" => PushFnValue(move |record : &Record, ser| {
+                ser.emit(record.module())
+            }),
+        ))
     }
 }
 // }}}
