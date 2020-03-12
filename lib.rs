@@ -20,6 +20,7 @@
 
 // {{{ Imports & meta
 #![warn(missing_docs)]
+#![allow(clippy::needless_doctest_main)]
 #[macro_use]
 extern crate slog;
 extern crate chrono;
@@ -27,11 +28,11 @@ extern crate serde;
 extern crate serde_json;
 
 use serde::ser::SerializeMap;
-use slog::{FnValue, PushFnValue};
-use slog::{OwnedKVList, KV, SendSyncRefUnwindSafeKV};
-use slog::Record;
-use std::{io, result, fmt};
 use slog::Key;
+use slog::Record;
+use slog::{FnValue, PushFnValue};
+use slog::{OwnedKVList, SendSyncRefUnwindSafeKV, KV};
+use std::{fmt, io, result};
 
 use std::cell::RefCell;
 use std::fmt::Write;
@@ -47,7 +48,7 @@ thread_local! {
 ///
 /// Newtype to wrap serde Serializer, so that `Serialize` can be implemented
 /// for it
-struct SerdeSerializer<S: serde::Serializer> {
+pub struct SerdeSerializer<S: serde::Serializer> {
     /// Current state of map serializing: `serde::Serializer::MapState`
     ser_map: S::SerializeMap,
 }
@@ -55,31 +56,52 @@ struct SerdeSerializer<S: serde::Serializer> {
 impl<S: serde::Serializer> SerdeSerializer<S> {
     /// Start serializing map of values
     fn start(ser: S, len: Option<usize>) -> result::Result<Self, slog::Error> {
-        let ser_map = try!(ser.serialize_map(len)
-            .map_err(|e| {
-                io::Error::new(io::ErrorKind::Other,
-                               format!("serde serialization error: {}", e))
-            }));
-        Ok(SerdeSerializer { ser_map: ser_map })
+        let ser_map = ser.serialize_map(len).map_err(|e| {
+            io::Error::new(
+                io::ErrorKind::Other,
+                format!("serde serialization error: {}", e),
+            )
+        })?;
+        Ok(SerdeSerializer { ser_map })
     }
 
     /// Finish serialization, and return the serializer
     fn end(self) -> result::Result<S::Ok, S::Error> {
         self.ser_map.end()
     }
+
+    /// Serialize a map of values using a Serde `Serializer`
+    pub fn serialize<'a, VIter>(
+        serializer: S,
+        rinfo: &Record,
+        logger_values: VIter,
+    ) -> result::Result<S::Ok, slog::Error>
+    where
+        S::Error: Send + Sync + 'static,
+        VIter: IntoIterator<Item = &'a dyn KV>,
+    {
+        let mut serializer = Self::start(serializer, None)?;
+        for kv in logger_values {
+            kv.serialize(rinfo, &mut serializer)?;
+        }
+        serializer.end().map_err(|e| {
+            slog::Error::Io(io::Error::new(io::ErrorKind::Other, e))
+        })
+    }
 }
 
 macro_rules! impl_m(
     ($s:expr, $key:expr, $val:expr) => ({
         let k_s:  &str = $key.as_ref();
-        try!($s.ser_map.serialize_entry(k_s, $val)
-             .map_err(|e| io::Error::new(io::ErrorKind::Other, format!("serde serialization error: {}", e))));
+        $s.ser_map.serialize_entry(k_s, $val)
+            .map_err(|e| io::Error::new(io::ErrorKind::Other, format!("serde serialization error: {}", e)))?;
         Ok(())
     });
 );
 
 impl<S> slog::Serializer for SerdeSerializer<S>
-    where S: serde::Serializer
+where
+    S: serde::Serializer,
 {
     fn emit_bool(&mut self, key: Key, val: bool) -> slog::Result {
         impl_m!(self, key, &val)
@@ -136,26 +158,28 @@ impl<S> slog::Serializer for SerdeSerializer<S>
     fn emit_str(&mut self, key: Key, val: &str) -> slog::Result {
         impl_m!(self, key, &val)
     }
-    fn emit_arguments(&mut self,
-                      key: Key,
-                      val: &fmt::Arguments)
-                      -> slog::Result {
-
+    fn emit_arguments(
+        &mut self,
+        key: Key,
+        val: &fmt::Arguments,
+    ) -> slog::Result {
         TL_BUF.with(|buf| {
             let mut buf = buf.borrow_mut();
 
             buf.write_fmt(*val).unwrap();
 
-            let res = {
-                || impl_m!(self, key, &*buf)
-            }();
+            let res = { || impl_m!(self, key, &*buf) }();
             buf.clear();
             res
         })
     }
 
     #[cfg(feature = "nested-values")]
-    fn emit_serde(&mut self, key: Key, value: &slog::SerdeValue) -> slog::Result {
+    fn emit_serde(
+        &mut self,
+        key: Key,
+        value: &slog::SerdeValue,
+    ) -> slog::Result {
         impl_m!(self, key, value.as_serde())
     }
 }
@@ -175,7 +199,8 @@ pub struct Json<W: io::Write> {
 }
 
 impl<W> Json<W>
-    where W: io::Write
+where
+    W: io::Write,
 {
     /// New `Json` `Drain` with default key-value pairs added
     pub fn default(io: W) -> Json<W> {
@@ -183,7 +208,7 @@ impl<W> Json<W>
     }
 
     /// Build custom `Json` `Drain`
-    #[cfg_attr(feature = "cargo-clippy", allow(new_ret_no_self))]
+    #[allow(clippy::new_ret_no_self)]
     pub fn new(io: W) -> JsonBuilder<W> {
         JsonBuilder::new(io)
     }
@@ -197,47 +222,42 @@ impl<W> Json<W>
     where
         F: serde_json::ser::Formatter,
     {
-        let mut serializer =
-            try!(SerdeSerializer::start(&mut *serializer, None));
-
-        for kv in &self.values {
-            try!(kv.serialize(rinfo, &mut serializer));
-        }
-
-        try!(logger_values.serialize(rinfo, &mut serializer));
-
-        try!(rinfo.kv().serialize(rinfo, &mut serializer));
-
-        let res = serializer.end();
-
-        try!(res.map_err(|e| io::Error::new(io::ErrorKind::Other, e)));
-
+        SerdeSerializer::serialize(
+            &mut *serializer,
+            rinfo,
+            self.values
+                .iter()
+                .map(|kv| kv as &dyn KV)
+                .chain(std::iter::once(logger_values as &dyn KV))
+                .chain(std::iter::once(&rinfo.kv() as &dyn KV)),
+        )?;
         Ok(())
     }
 }
 
 impl<W> slog::Drain for Json<W>
-    where W: io::Write
+where
+    W: io::Write,
 {
     type Ok = ();
     type Err = io::Error;
-    fn log(&self,
-           rinfo: &Record,
-           logger_values: &OwnedKVList)
-           -> io::Result<()> {
-
+    fn log(
+        &self,
+        rinfo: &Record,
+        logger_values: &OwnedKVList,
+    ) -> io::Result<()> {
         let mut io = self.io.borrow_mut();
         let io = if self.pretty {
             let mut serializer = serde_json::Serializer::pretty(&mut *io);
-            try!(self.log_impl(&mut serializer, &rinfo, &logger_values));
+            self.log_impl(&mut serializer, &rinfo, &logger_values)?;
             serializer.into_inner()
         } else {
             let mut serializer = serde_json::Serializer::new(&mut *io);
-            try!(self.log_impl(&mut serializer, &rinfo, &logger_values));
+            self.log_impl(&mut serializer, &rinfo, &logger_values)?;
             serializer.into_inner()
         };
         if self.newlines {
-            try!(io.write_all("\n".as_bytes()));
+            io.write_all(b"\n")?;
         }
         if self.flush {
             io.flush()?;
@@ -261,14 +281,15 @@ pub struct JsonBuilder<W: io::Write> {
 }
 
 impl<W> JsonBuilder<W>
-    where W: io::Write
+where
+    W: io::Write,
 {
     fn new(io: W) -> Self {
         JsonBuilder {
             newlines: true,
             flush: false,
             values: vec![],
-            io: io,
+            io,
             pretty: false,
         }
     }
@@ -306,7 +327,8 @@ impl<W> JsonBuilder<W>
 
     /// Add custom values to be printed with this formatter
     pub fn add_key_value<T>(mut self, value: slog::OwnedKV<T>) -> Self
-        where T: SendSyncRefUnwindSafeKV + 'static
+    where
+        T: SendSyncRefUnwindSafeKV + 'static,
     {
         self.values.push(value.into());
         self
@@ -319,16 +341,16 @@ impl<W> JsonBuilder<W>
     /// * `msg` - msg - formatted logging message
     pub fn add_default_keys(self) -> Self {
         self.add_key_value(o!(
-                "ts" => PushFnValue(move |_ : &Record, ser| {
-                    ser.emit(chrono::Local::now().to_rfc3339())
-                }),
-                "level" => FnValue(move |rinfo : &Record| {
-                    rinfo.level().as_short_str()
-                }),
-                "msg" => PushFnValue(move |record : &Record, ser| {
-                    ser.emit(record.msg())
-                }),
-                ))
+        "ts" => PushFnValue(move |_ : &Record, ser| {
+            ser.emit(chrono::Local::now().to_rfc3339())
+        }),
+        "level" => FnValue(move |rinfo : &Record| {
+            rinfo.level().as_short_str()
+        }),
+        "msg" => PushFnValue(move |record : &Record, ser| {
+            ser.emit(record.msg())
+        }),
+        ))
     }
 }
 // }}}

@@ -9,6 +9,7 @@ documentation = "https://docs.rs/slog-json"
 homepage = "https://github.com/slog-rs/slog"
 repository = "https://github.com/slog-rs/json"
 readme = "README.md"
+edition = "2018"
 
 [lib]
 path = "lib.rs"
