@@ -47,7 +47,7 @@ thread_local! {
 ///
 /// Newtype to wrap serde Serializer, so that `Serialize` can be implemented
 /// for it
-struct SerdeSerializer<S: serde::Serializer> {
+pub struct SerdeSerializer<S: serde::Serializer> {
     /// Current state of map serializing: `serde::Serializer::MapState`
     ser_map: S::SerializeMap,
 }
@@ -66,6 +66,25 @@ impl<S: serde::Serializer> SerdeSerializer<S> {
     /// Finish serialization, and return the serializer
     fn end(self) -> result::Result<S::Ok, S::Error> {
         self.ser_map.end()
+    }
+
+    /// Serialize a map of values using a Serde `Serializer`
+    pub fn serialize<'a, VIter>(
+        serializer: S,
+        rinfo: &Record,
+        logger_values: VIter,
+    ) -> result::Result<S::Ok, slog::Error>
+    where
+        S::Error: Send + Sync + 'static,
+        VIter: IntoIterator<Item = &'a dyn KV>,
+    {
+        let mut serializer = try!(Self::start(serializer, None));
+        for kv in logger_values {
+            try!(kv.serialize(rinfo, &mut serializer));
+        }
+        serializer.end().map_err(|e| {
+            slog::Error::Io(io::Error::new(io::ErrorKind::Other, e))
+        })
     }
 }
 
@@ -197,21 +216,15 @@ impl<W> Json<W>
     where
         F: serde_json::ser::Formatter,
     {
-        let mut serializer =
-            try!(SerdeSerializer::start(&mut *serializer, None));
-
-        for kv in &self.values {
-            try!(kv.serialize(rinfo, &mut serializer));
-        }
-
-        try!(logger_values.serialize(rinfo, &mut serializer));
-
-        try!(rinfo.kv().serialize(rinfo, &mut serializer));
-
-        let res = serializer.end();
-
-        try!(res.map_err(|e| io::Error::new(io::ErrorKind::Other, e)));
-
+        try!(SerdeSerializer::serialize(
+            &mut *serializer,
+            rinfo,
+            self.values
+                .iter()
+                .map(|kv| kv as &dyn KV)
+                .chain(std::iter::once(logger_values as &dyn KV))
+                .chain(std::iter::once(&rinfo.kv() as &dyn KV))
+        ));
         Ok(())
     }
 }
