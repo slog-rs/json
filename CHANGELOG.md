@@ -6,6 +6,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+## 2.4.0 - 2021-07-28
+### Added
+
+* Support serializing u128/i128 as json-numbers
+
 ## 2.3.0 - 2018-12-04
 ### Added
 
