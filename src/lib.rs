@@ -331,8 +331,11 @@ where
     /// * `msg` - msg - formatted logging message
     pub fn add_default_keys(self) -> Self {
         self.add_key_value(o!(
-            "ts" => PushFnValue(move |_ : &Record, ser| {
-                ser.emit(chrono::Local::now().to_rfc3339())
+            "ts" => FnValue(move |_ : &Record| {
+                time::OffsetDateTime::now_local()
+                    .unwrap_or_else(|_| time::OffsetDateTime::now_utc())
+                    .format(&time::format_description::well_known::Rfc3339)
+                    .ok()
             }),
             "level" => FnValue(move |rinfo : &Record| {
                 rinfo.level().as_short_str()
