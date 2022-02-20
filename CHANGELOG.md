@@ -5,6 +5,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
+### Changed
+* Replaced `chrono` with `time` (PR #28). Thanks @ShellWowza
+* Bump Minimum Supported Rust Version from `1.38` -> `1.53`
+* Switch to Github Actions
 
 ## 2.5.0 - 2022-01-21
 ### Changed
