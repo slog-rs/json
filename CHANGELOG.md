@@ -6,6 +6,15 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+## 2.5.0 - 2022-01-21
+### Changed
+* Upgrade to Rust 2018
+* Relicense to Apache/MIT/MPL
+    * Previous license was MPL only, so this is actually more permissive
+
+### Security
+* Disable default features of chrono. Avoids [RUSTSEC-2020-0071](https://rustsec.org/advisories/RUSTSEC-2020-0071.html)
+
 ## 2.4.0 - 2021-07-28
 ### Added
 
