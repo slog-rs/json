@@ -332,8 +332,7 @@ where
     pub fn add_default_keys(self) -> Self {
         self.add_key_value(o!(
             "ts" => FnValue(move |_ : &Record| {
-                time::OffsetDateTime::now_local()
-                    .unwrap_or_else(|_| time::OffsetDateTime::now_utc())
+                    time::OffsetDateTime::now_utc()
                     .format(&time::format_description::well_known::Rfc3339)
                     .ok()
             }),
