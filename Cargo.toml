@@ -33,6 +33,11 @@ time = { version = "0.3.6", features = ["formatting"] }
 
 [dev-dependencies]
 slog-async = "2"
+slog-envlogger = "2"
+slog-scope = "4"
+chrono = "0.4"
+slog-stdlog = "4"
+log = "0.4"
 
 [package.metadata.docs.rs]
 features = ["nested-values", "dynamic-keys"]
