@@ -5,6 +5,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
+* Implement `Drain::flush` method added in [slog-rs/slog#349]
+
+[slog-rs/slog#349]: https://github.com/slog-rs/slog/pull/349
 
 ## 2.6.0 - 2022-02-20
 ### Changed

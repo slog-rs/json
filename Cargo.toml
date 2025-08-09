@@ -25,14 +25,14 @@ dynamic-keys = ["slog/dynamic-keys"]
 default = []
 
 [dependencies]
-slog = { version = "2.1.1" }
+slog = { git = "https://github.com/Techcable/slog.git", branch = "feature/simple-flush-method" }
 serde_json = "1"
 serde = "1"
 erased-serde = {version = "0.3", optional = true }
 time = { version = "0.3.6", features = ["formatting"] }
 
 [dev-dependencies]
-slog-async = "2"
+slog-async = { git = "https://github.com/Techcable/slog-async.git", branch = "feature/impl-simple-flush" }
 
 [package.metadata.docs.rs]
 features = ["nested-values", "dynamic-keys"]
