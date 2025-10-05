@@ -5,6 +5,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
+
+## 2.7.0 - 2025-10-05
+
 ### Changed
 * Upgrade to [slog v2.8.0].
   * Enable `nested-values` feature by default
