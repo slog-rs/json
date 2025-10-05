@@ -30,7 +30,7 @@ jobs:
           # Minimum Supported Rust Version
           #
           # This is hardcoded and needs to be in sync with Cargo.toml and the README
-          - 1.53
+          - 1.61
 
           # Intermediate Releases (between MSRV and latest stable)
           # Be careful not to add these needlessly; they hold up CI

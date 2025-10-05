@@ -251,6 +251,11 @@ where
         }
         Ok(())
     }
+
+    fn flush(&self) -> Result<(), slog::FlushError> {
+        let mut io = self.io.borrow_mut();
+        io.flush().map_err(slog::FlushError::from)
+    }
 }
 
 // }}}
