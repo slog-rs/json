@@ -62,10 +62,13 @@ jobs:
           # Helpful for Rust versions that use old index
           cache-on-failure: true
       # Pin a time version with a compatible MSRV
-      - name: Pin time version
+      - name: Pin dependency versions for MSRV
         if: ${{ matrix.rust != 'nightly' && matrix.rust != 'stable' }}
         run: |
           cargo update --package time --precise 0.3.16
+          cargo update --package thread_local --precise 1.1.8
+          cargo update --package libc --precise 0.2.163
+          cargo update --package once_cell --precise 1.20.2
       - name: Check
         run: |
           cargo check --all-targets --verbose --no-default-features --features "${{ matrix.features }}"
