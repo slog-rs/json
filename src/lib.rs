@@ -193,7 +193,7 @@ where
     }
 
     /// Build custom `Json` `Drain`
-    #[cfg_attr(feature = "cargo-clippy", allow(clippy::new_ret_no_self))]
+    #[allow(clippy::new_ret_no_self)]
     pub fn new(io: W) -> JsonBuilder<W> {
         JsonBuilder::new(io)
     }
