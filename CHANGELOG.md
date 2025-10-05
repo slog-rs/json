@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 * Upgrade to [slog v2.8.0].
   * Enable `nested-values` feature by default
   * Increase MSRV to 1.61 (same as slog)
+* Switch from `serde` to `serde_core`. Should reduce compile times.
 
 ### Added
 * Implement `Drain::flush` (new in [slog v2.8.0])
