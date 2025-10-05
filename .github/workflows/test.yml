@@ -58,6 +58,14 @@ jobs:
           toolchain: ${{ matrix.rust }}
       - uses: Swatinem/rust-cache@v2
         if: ${{ matrix.rust != 'nightly' }} # ineffective due to version key
+        with:
+          # Helpful for Rust versions that use old index
+          cache-on-failure: true
+      # Pin a time version with a compatible MSRV
+      - name: Pin time version
+        if: ${{ matrix.rust != 'nightly' && matrix.rust != 'stable' }}
+        run: |
+          cargo update --package time --precise 0.3.16
       - name: Check
         run: |
           cargo check --all-targets --verbose --no-default-features --features "${{ matrix.features }}"
