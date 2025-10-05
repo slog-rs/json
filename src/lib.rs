@@ -23,7 +23,6 @@
 extern crate slog;
 
 use serde::ser::SerializeMap;
-use serde::serde_if_integer128;
 use slog::Key;
 use slog::Record;
 use slog::{FnValue, PushFnValue};
@@ -132,13 +131,11 @@ where
     fn emit_f64(&mut self, key: Key, val: f64) -> slog::Result {
         impl_m!(self, key, &val)
     }
-    serde_if_integer128! {
-        fn emit_u128(&mut self, key: Key, val: u128) -> slog::Result {
-            impl_m!(self, key, &val)
-        }
-        fn emit_i128(&mut self, key: Key, val: i128) -> slog::Result {
-            impl_m!(self, key, &val)
-        }
+    fn emit_u128(&mut self, key: Key, val: u128) -> slog::Result {
+        impl_m!(self, key, &val)
+    }
+    fn emit_i128(&mut self, key: Key, val: i128) -> slog::Result {
+        impl_m!(self, key, &val)
     }
     fn emit_str(&mut self, key: Key, val: &str) -> slog::Result {
         impl_m!(self, key, &val)
@@ -193,7 +190,7 @@ where
     }
 
     /// Build custom `Json` `Drain`
-    #[cfg_attr(feature = "cargo-clippy", allow(clippy::new_ret_no_self))]
+    #[allow(clippy::new_ret_no_self)]
     pub fn new(io: W) -> JsonBuilder<W> {
         JsonBuilder::new(io)
     }
@@ -253,6 +250,11 @@ where
             io.flush()?;
         }
         Ok(())
+    }
+
+    fn flush(&self) -> Result<(), slog::FlushError> {
+        let mut io = self.io.borrow_mut();
+        io.flush().map_err(slog::FlushError::from)
     }
 }
 
