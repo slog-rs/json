@@ -1,8 +1,6 @@
 # We use `actions-rs` for most of our actions
 #
-# This file is for the main tests. clippy & rustfmt are seperate workflows
-#
-# It is mostly copied from slog-rs/slog
+# This file is for the main tests. clippy & rustfmt are separate workflows
 on: [push, pull_request]
 name: Cargo Test
 
@@ -28,24 +26,82 @@ jobs:
     strategy:
       fail-fast: false # Even if one job fails we still want to see the other ones
       matrix:
-        # 1.53 is MSRV. Keep in sync with Cargo.toml
-        rust: [1.53, stable, nightly]
-        # NOTE: Features to test must be specified manually. They are applied to all versions seperately.
+        rust:
+          # Minimum Supported Rust Version
+          #
+          # This is hardcoded and needs to be in sync with Cargo.toml and the README
+          - 1.61
+
+          # Intermediate Releases (between MSRV and latest stable)
+          # Be careful not to add these needlessly; they hold up CI
+          # <nothing currently>
+
+          # The most recent version of stable rust (automatically updated)
+          - stable
+          - nightly
+        # NOTE: Features to test must be specified manually. They are applied to all versions separately.
         #
-        # This has the advantage of being more flexibile and thorough
-        # This has the disadvantage of being more vebrose
+        # This has the advantage of being more flexible and thorough
+        # This has the disadvantage of being more verbose
         #
-        # Specific feature combos can be overriden per-version with 'include' and 'exclude'
-        features: ["", "nested-values", "dynamic-keys", "nested-values dynamic-keys"]
+        # Specific feature combos can be overridden per-version with 'include' and 'ecclude'
+        features:
+          - ""
+          - "nested-values"
+          - "dynamic-keys"
+          - "nested-values dynamic-keys"
 
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions-rs/toolchain@v1
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@master
         with:
           toolchain: ${{ matrix.rust }}
-          override: true
-      # NOTE: We only run `cargo test`. No need for a seperate `cargo check`
-      - name: Test
+      - uses: Swatinem/rust-cache@v2
+        if: ${{ matrix.rust != 'nightly' }} # ineffective due to version key
+        with:
+          # Helpful for Rust versions that use old index
+          cache-on-failure: true
+      # Pin a time version with a compatible MSRV
+      - name: Pin dependency versions for MSRV
+        if: ${{ matrix.rust != 'nightly' && matrix.rust != 'stable' }}
         run: |
-          cargo test --verbose --features "${{ matrix.features }}"
+          cargo update --package time --precise 0.3.16
+          cargo update --package thread_local --precise 1.1.8
+          cargo update --package libc --precise 0.2.163
+          cargo update --package once_cell --precise 1.20.2
+      - name: Check
+        run: |
+          cargo check --all-targets --verbose --no-default-features --features "${{ matrix.features }}"
+        # A failing `cargo check` always fails the build
+        continue-on-error: false
+      - name: Test
+        # NOTE: Running --all-targets does not include doc tests
+        run: |
+          cargo test --all --verbose --no-default-features --features "${{ matrix.features }}"
 
+        # We require tests to succeed on all the feature combinations.
+        #
+        # However, we can grant special exceptions for the Minimum Supported Rust Version
+        # if there is a really good reason (like a dependency that requires a newer version).
+        continue-on-error: false
+      - name: rustdoc
+        # Restrict to working on nightly/stable (old versions might have undefined types)
+        if: ${{ matrix.rust == 'nightly' || matrix.rust == 'stable' }}
+        env:
+          RUSTDOCFLAGS: -Dwarnings
+        run: |
+          cargo doc --no-deps --all --verbose --no-default-features --features "${{ matrix.features }}"
+  # Runs the same build that docs.rs does. See https://github.com/dtolnay/cargo-docs-rs
+  docsrs:
+    # Only run on PRs if the source branch is on someone else's repo
+    if: ${{ github.event_name != 'pull_request' || github.repository != github.event.pull_request.head.repo.full_name }}
+
+    name: docs.rs
+    runs-on: ubuntu-latest
+    env:
+      RUSTDOCFLAGS: -Dwarnings
+    steps:
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@nightly
+      - uses: dtolnay/install@cargo-docs-rs
+      - run: cargo docs-rs

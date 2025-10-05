@@ -6,6 +6,19 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+## 2.7.0 - 2025-10-05
+
+### Changed
+* Upgrade to [slog v2.8.0].
+  * Enable `nested-values` feature by default
+  * Increase MSRV to 1.61 (same as slog)
+* Switch from `serde` to `serde_core`. Should reduce compile times.
+
+### Added
+* Implement `Drain::flush` (new in [slog v2.8.0])
+
+[slog v2.8.0]: https://github.com/slog-rs/slog/releases/v2.8.0
+
 ## 2.6.0 - 2022-02-20
 ### Changed
 * Replaced `chrono` with `time` (PR #28). Thanks @ShellWowza
